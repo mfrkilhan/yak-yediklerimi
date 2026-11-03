@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f47b20">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Yediklerimi Yak</title>
+<style>
+:root{--orange:#f47b20;--dark:#71320b;--cream:#fff7ef;--ink:#29231f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:Arial,sans-serif;font-size:17px}
+main{width:min(720px,100%);margin:auto;padding:22px 16px 32px}
+header{text-align:center;background:var(--orange);color:white;padding:24px 16px;border-radius:22px}
+header .logo{font-size:48px;line-height:1.2}
+h1{font-size:30px;margin:8px 0}
+header p{margin:6px 0 0}
+h2{font-size:22px;margin:24px 0 12px}
+.weight,.receipt,.message,.timer{background:white;border:2px solid #f3d2b8;border-radius:18px;padding:16px;margin-top:16px}
+label{display:block;font-weight:bold;margin-bottom:8px}
+input{width:100%;padding:14px;border:2px solid #b9a99e;border-radius:12px;font-size:20px}
+.hint{font-size:14px;color:#62564e;margin:8px 0 0}
+.foods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.food{background:white;border:2px solid #f3d2b8;border-radius:16px;padding:18px 12px;text-align:left;font-size:18px;font-weight:bold;min-height:112px;color:var(--ink);cursor:pointer}
+.food span{display:block;font-size:30px;margin-bottom:8px}
+.food small{display:block;font-size:15px;font-weight:normal;margin-top:5px}
+.food:focus,.food.selected{outline:3px solid var(--orange);border-color:var(--orange)}
+button.action{width:100%;padding:15px;border:0;border-radius:13px;background:var(--orange);color:white;font-size:18px;font-weight:bold;margin-top:10px;cursor:pointer}
+button.secondary{background:var(--dark)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.receipt h2{margin:0 0 12px;color:var(--dark)}
+.result{padding:12px;background:#fff7ef;border-radius:12px;margin:8px 0}
+.result strong{display:block;font-size:21px;margin-top:4px}
+.warning{color:#a32216;font-weight:bold;margin-top:10px}
+.message{font-weight:bold;text-align:center}
+.timer{text-align:center}
+#count{font-size:48px;font-weight:bold;color:var(--dark);margin:8px}
+footer{font-size:14px;line-height:1.5;color:#51463f;margin-top:24px}
+@media(min-width:560px){.foods{grid-template-columns:repeat(4,minmax(0,1fr))}.food{font-size:16px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="logo" aria-hidden="true">🍟</div>
+  <h1>Yediklerimi Yak</h1>
+  <p>Yediklerin için eğlenceli bir enerji faturası!</p>
+</header>
+
+<section class="weight">
+  <label for="weight">Örnek ağırlık (kg)</label>
+  <input id="weight" type="text" inputmode="decimal" value="70" autocomplete="off" aria-describedby="weightHelp">
+  <p class="hint" id="weightHelp">Sınav denemelerinde 70 ve 90 kg örneklerini kullanın.</p>
+  <p id="warning" class="warning" role="alert" hidden>Lütfen sıfırdan büyük geçerli bir sayı girin. Hesap yapılmadı.</p>
+</section>
+
+<h2>Bir yiyecek seç</h2>
+<section class="foods" aria-label="Yiyecek seçenekleri">
+  <button class="food" data-name="Küçük paket cips (40 g)" data-kcal="210"><span>🥔</span>Küçük paket cips<small>40 g · 210 kcal</small></button>
+  <button class="food" data-name="Baklava (1 dilim, 40 g)" data-kcal="175"><span>🍰</span>Baklava<small>1 dilim, 40 g · 175 kcal</small></button>
+  <button class="food" data-name="Kola (1 kutu, 330 ml)" data-kcal="140"><span>🥤</span>Kola<small>330 ml · 140 kcal</small></button>
+  <button class="food" data-name="Çikolatalı gofret (35 g)" data-kcal="185"><span>🍫</span>Çikolatalı gofret<small>35 g · 185 kcal</small></button>
+</section>
+
+<section class="receipt" id="receipt" aria-live="polite" hidden>
+  <h2>🧾 FATURA</h2>
+  <p id="foodName"></p>
+  <p><strong id="foodKcal"></strong></p>
+  <div class="result">🚶 Tempolu yürüyüş<strong id="walk"></strong></div>
+  <div class="result">🏋️ Squat<strong id="squat"></strong></div>
+  <div class="result">🪜 Merdiven çıkma<strong id="stairs"></strong></div>
+  <p class="hint">Bunlar birbirinin alternatifi olan yaklaşık hesaplardır; birlikte yapılacak bir program değildir.</p>
+  <button class="action" id="buy">Satın alıyorum</button>
+  <button class="action secondary" id="bargain">Pazarlık yap</button>
+  <button class="action" id="start">Simülasyonu başlat</button>
+</section>
+
+<div class="message" id="message" aria-live="polite" hidden></div>
+<section class="timer" id="timer" aria-live="polite" hidden>
+  <div>Simülasyon sayacı</div>
+  <div id="count">20</div>
+  <div id="timerText">Ekran simülasyonu başladı.</div>
+</section>
+
+<footer>
+  <p>Sonuçlar verilen hesap modeline göre yaklaşık değerlerdir. Yiyecek suç değildir, egzersiz ceza değildir. Gerçek ürünlerde paket etiketi esas alınır.</p>
+  <p>Eğitim amaçlı ekran simülasyonudur; sağlık veya diyet önerisi değildir ve kişisel/klinik değerlendirme yapmaz.</p>
+</footer>
+</main>
+<script>
+const weightInput=document.getElementById('weight');
+const warning=document.getElementById('warning');
+const receipt=document.getElementById('receipt');
+const message=document.getElementById('message');
+const timerBox=document.getElementById('timer');
+const startButton=document.getElementById('start');
+let selectedFood=null;
+let countdownId=null;
+
+const savedWeight=localStorage.getItem('yediklerimiYakWeight');
+if(savedWeight && Number.isFinite(Number(savedWeight)) && Number(savedWeight)>0){
+  weightInput.value=savedWeight;
+}
+
+function getValidWeight(){
+  const raw=weightInput.value.trim().replace(',','.');
+  const value=Number(raw);
+  if(raw==='' || !Number.isFinite(value) || value<=0){
+    warning.hidden=false;
+    receipt.hidden=true;
+    return null;
+  }
+  warning.hidden=true;
+  localStorage.setItem('yediklerimiYakWeight',String(value));
+  return value;
+}
+
+function showFood(button){
+  const weight=getValidWeight();
+  if(weight===null) return;
+  selectedFood={name:button.dataset.name,kcal:Number(button.dataset.kcal)};
+  document.querySelectorAll('.food').forEach(item=>item.classList.toggle('selected',item===button));
+  const perMinute=met=>met*3.5*weight/200;
+  const walk=selectedFood.kcal/perMinute(4.8);
+  const squat=selectedFood.kcal/perMinute(6.5)*20;
+  const stairs=selectedFood.kcal/perMinute(6.8)*4;
+  document.getElementById('foodName').textContent=selectedFood.name;
+  document.getElementById('foodKcal').textContent=selectedFood.kcal+' kcal';
+  document.getElementById('walk').textContent=Math.round(walk)+' dakika';
+  document.getElementById('squat').textContent=Math.round(squat)+' tekrar';
+  document.getElementById('stairs').textContent=Math.round(stairs)+' kat';
+  receipt.hidden=false;
+  message.hidden=true;
+  timerBox.hidden=true;
+}
+document.querySelectorAll('.food').forEach(button=>button.addEventListener('click',()=>showFood(button)));
+weightInput.addEventListener('change',()=>{
+  const weight=getValidWeight();
+  if(weight!==null && selectedFood){
+    const selected=document.querySelector('.food.selected');
+    if(selected) showFood(selected);
+  }
+});
+document.getElementById('buy').addEventListener('click',()=>{
+  message.textContent='Afiyet olsun! 😊';
+  message.hidden=false;
+});
+document.getElementById('bargain').addEventListener('click',()=>{
+  message.textContent='Pazarlık kabul! Yarım porsiyon ve ekranda 20 jumping jack… Sadece simülasyon, egzersiz yapmanız gerekmiyor! 😄';
+  message.hidden=false;
+});
+startButton.addEventListener('click',()=>{
+  if(countdownId!==null) return;
+  let count=20;
+  timerBox.hidden=false;
+  message.hidden=true;
+  document.getElementById('count').textContent=count;
+  document.getElementById('timerText').textContent='Ekran simülasyonu başladı.';
+  startButton.disabled=true;
+  countdownId=setInterval(()=>{
+    count--;
+    document.getElementById('count').textContent=count;
+    if(count<=0){
+      clearInterval(countdownId);
+      countdownId=null;
+      startButton.disabled=false;
+      document.getElementById('timerText').textContent='Anlaşma tamam!';
+    }
+  },1500);
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
